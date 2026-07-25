@@ -7,7 +7,7 @@ monitor:
 playwright:
   headless: true
 notification:
-  to: esehmec@gmail.com
+  to: ${MAIL_USERNAME}
 mail:
   enabled: true
 spring:
