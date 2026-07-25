@@ -1,0 +1,21 @@
+monitor:
+  url: https://herkul.app/ortak-kuran
+  interval: PT1H
+  threshold: 5
+  start-time: "06:00"
+  end-time: "23:50"
+playwright:
+  headless: true
+notification:
+  to: esehmec@gmail.com
+mail:
+  enabled: true
+spring:
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true

@@ -1,0 +1,10 @@
+services:
+  hatim-alert:
+    build: .
+    container_name: hatim-alert
+    restart: unless-stopped
+
+    environment:
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+      TZ: America/Chicago
