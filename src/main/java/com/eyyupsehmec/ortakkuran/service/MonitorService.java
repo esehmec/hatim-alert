@@ -25,12 +25,26 @@ public class MonitorService {
      */
     private volatile boolean alreadyNotified = false;
 
+    /**
+     * Number of scheduled monitor executions to skip.
+     */
+    private volatile int runsToSkip = 0;
+
     public void monitor() {
         LocalTime now = LocalTime.now(CST);
 
         if (now.isBefore(LocalTime.of(6, 0)) ||
                 now.isAfter(LocalTime.of(23, 50))) {
             log.info("Skipping monitor. Outside monitoring window (06:00 - 23:50 CST).");
+            return;
+        }
+
+        if (runsToSkip > 0) {
+            log.info(
+                    "Skipping scheduled monitor. {} scheduled run(s) remaining.",
+                    runsToSkip);
+
+            runsToSkip--;
             return;
         }
 
@@ -44,6 +58,17 @@ public class MonitorService {
                     playwrightService.check(properties.getUrl());
 
             log.info("Remaining pages: {}", result.pageCount());
+
+            runsToSkip = Math.max(0, (result.pageCount() - 1) / 100);
+
+            if (runsToSkip > 0) {
+                log.info(
+                        "Remaining pages: {}. Skipping the next {} scheduled run(s).",
+                        result.pageCount(),
+                        runsToSkip);
+            } else {
+                log.info("Remaining pages below 100. Monitoring will run again next hour.");
+            }
 
             result.pages().forEach(page ->
                     log.info(" - {}", page));

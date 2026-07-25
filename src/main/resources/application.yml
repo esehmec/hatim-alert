@@ -2,6 +2,7 @@ monitor:
   url: https://herkul.app/ortak-kuran
   interval: PT1H
   threshold: 5
+  skip-bucket-size: 100
   start-time: "06:00"
   end-time: "23:50"
 playwright:
