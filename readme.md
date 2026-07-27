@@ -12,6 +12,7 @@ The application uses **Playwright** to scrape the website and can run locally or
 - 📧 Sends email notifications
 - ⏰ Configurable monitoring interval
 - 🕕 Configurable monitoring window
+- ⏭️ Smart skip scheduling when many pages remain
 - 🐳 Docker support
 - 📝 Detailed logging
 - 🚫 Prevents duplicate email notifications while the page count remains below the threshold
@@ -38,6 +39,7 @@ Example:
 monitor:
   url: https://example.com
   threshold: 600
+  skip-bucket-size: 100
   interval: PT1H
   start-time: "06:00"
   end-time: "23:50"
@@ -137,6 +139,25 @@ Monitoring only occurs between:
 - End Time (default: 23:50 America/Chicago)
 
 Outside that window, the application skips monitoring.
+
+### Smart Skip Scheduling
+
+To reduce unnecessary Playwright executions, the application dynamically skips scheduled monitoring runs when there are many remaining pages.
+
+The skip logic is only applied while the remaining page count is **greater than or equal to the configured notification threshold**. Once the remaining pages fall below the threshold, the application resumes checking every scheduled interval so that the notification is sent as soon as possible.
+
+The number of skipped runs is determined by the configurable `monitor.skip-bucket-size` property.
+
+Examples (default bucket size = 100):
+
+| Remaining Pages | Behavior |
+|----------------:|----------|
+| 75 | Check again next hour |
+| 101 | Skip the next 1 scheduled run |
+| 250 | Skip the next 2 scheduled runs |
+| 430 | Skip the next 4 scheduled runs |
+
+This optimization significantly reduces browser launches while the remaining page count is still high.
 
 ---
 
