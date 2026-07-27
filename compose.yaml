@@ -3,7 +3,8 @@ services:
     build: .
     container_name: hatim-alert
     restart: unless-stopped
-
+    env_file:
+      - .env
     environment:
       MAIL_USERNAME: ${MAIL_USERNAME}
       MAIL_PASSWORD: ${MAIL_PASSWORD}
