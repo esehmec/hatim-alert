@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.LocalTime;
 import java.time.ZoneId;
 
@@ -17,8 +18,10 @@ public class MonitorService {
     private final PlaywrightService playwrightService;
     private final EmailService emailService;
     private final MonitorProperties properties;
-
+    private volatile int remainingPages;
     private static final ZoneId CST = ZoneId.of("America/Chicago");
+    private int skipBucket;;
+    private int threshold;
 
     /**
      * Prevent duplicate emails while the count remains below the threshold.
@@ -50,30 +53,30 @@ public class MonitorService {
 
         log.info("========================================");
         log.info("Starting monitor");
-        log.info("Threshold: {}", properties.getThreshold());
+        log.info("Threshold: {}", threshold);
 
         try {
-
-            MonitorResult result =
-                    playwrightService.check(properties.getUrl());
-
+            threshold = properties.getThreshold();
+            skipBucket = properties.getSkipBucket();
+            MonitorResult result = playwrightService.check(properties.getUrl());
             log.info("Remaining pages: {}", result.pageCount());
 
-            runsToSkip = Math.max(0, (result.pageCount() - 1) / 100);
-
+            runsToSkip = Math.max(0, (result.pageCount() - 1) / skipBucket);
+            remainingPages = result.pageCount();
+            log.info("skip-bucket: {}", skipBucket);
             if (runsToSkip > 0) {
                 log.info(
                         "Remaining pages: {}. Skipping the next {} scheduled run(s).",
                         result.pageCount(),
                         runsToSkip);
             } else {
-                log.info("Remaining pages below 100. Monitoring will run again next hour.");
+                log.info("Remaining pages below {}. Monitoring will run again in next {}, minutes", skipBucket, getNextInterval());
             }
 
             result.pages().forEach(page ->
                     log.info(" - {}", page));
 
-            if (result.pageCount() < properties.getThreshold()) {
+            if (result.pageCount() < threshold) {
 
                 if (!alreadyNotified) {
 
@@ -107,6 +110,17 @@ public class MonitorService {
         log.info("Monitor finished.");
         log.info("========================================");
 
+    }
+
+    public Duration getNextInterval() {
+        MonitorProperties.FastCheck fastCheck = properties.getFastCheck();
+
+        if (remainingPages > fastCheck.getMinPages()
+                && remainingPages <= fastCheck.getMaxPages()) {
+            return fastCheck.getInterval();
+        }
+
+        return properties.getInterval();
     }
 
 }
