@@ -1,10 +1,14 @@
 monitor:
   url: https://herkul.app/ortak-kuran
-  interval: PT1H
-  threshold: 5
-  skip-bucket-size: 100
+  threshold: 10
+  skip-bucket: 200 # skip next run if more pages than this exist
   start-time: "06:00"
   end-time: "23:50"
+  interval: 1h
+  fast-check:
+    min-pages: 10
+    max-pages: 60
+    interval: 10m
 playwright:
   headless: true
 notification:
@@ -17,6 +21,7 @@ spring:
     port: 587
     username: ${MAIL_USERNAME}
     password: ${MAIL_PASSWORD}
+    debug: true
     properties:
       mail.smtp.auth: true
       mail.smtp.starttls.enable: true
