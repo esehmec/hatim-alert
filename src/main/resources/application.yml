@@ -1,13 +1,13 @@
 monitor:
   url: https://herkul.app/ortak-kuran
   threshold: 10
-  skip-bucket: 200 # skip next run if more pages than this exist
+  skip-bucket: 400 # skip next run if more pages than this exist
   start-time: "06:00"
   end-time: "23:50"
   interval: 1h
   fast-check:
     min-pages: 10
-    max-pages: 60
+    max-pages: 100
     interval: 10m
 playwright:
   headless: true
