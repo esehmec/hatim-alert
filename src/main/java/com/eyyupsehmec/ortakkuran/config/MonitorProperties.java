@@ -60,6 +60,7 @@ public class MonitorProperties {
         private int minPages;
         private int maxPages;
         private Duration interval;
+        private int maxReminders;
 
         public int getMinPages() {
             return minPages;
@@ -83,6 +84,14 @@ public class MonitorProperties {
 
         public void setInterval(Duration interval) {
             this.interval = interval;
+        }
+
+        public int getMaxReminders() {
+            return maxReminders;
+        }
+
+        public void setMaxReminders(int maxReminders) {
+            this.maxReminders = maxReminders;
         }
     }
 }
