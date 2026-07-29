@@ -22,11 +22,17 @@ public class MonitorService {
     private static final ZoneId CST = ZoneId.of("America/Chicago");
     private int skipBucket;;
     private int threshold;
+    int maxReminders = properties.getFastCheck().getMaxReminders();
 
     /**
-     * Prevent duplicate emails while the count remains below the threshold.
+     * Number of reminder emails sent while in the fast-check zone.
      */
-    private volatile boolean alreadyNotified = false;
+    private volatile int fastCheckReminderCount = 0;
+
+    /**
+     * Prevent duplicate threshold notifications.
+     */
+    private volatile boolean thresholdNotificationSent = false;
 
     /**
      * Number of scheduled monitor executions to skip.
@@ -53,63 +59,103 @@ public class MonitorService {
 
         log.info("========================================");
         log.info("Starting monitor");
-        log.info("Threshold: {}", threshold);
 
         try {
             threshold = properties.getThreshold();
             skipBucket = properties.getSkipBucket();
-            MonitorResult result = playwrightService.check(properties.getUrl());
-            log.info("Remaining pages: {}", result.pageCount());
 
-            runsToSkip = Math.max(0, (result.pageCount() - 1) / skipBucket);
+            MonitorProperties.FastCheck fastCheck = properties.getFastCheck();
+
+            MonitorResult result = playwrightService.check(properties.getUrl());
+
             remainingPages = result.pageCount();
-            log.info("skip-bucket: {}", skipBucket);
+
+            log.info("Remaining pages: {}", remainingPages);
+
+            runsToSkip = Math.max(0, (remainingPages - 1) / skipBucket);
+
             if (runsToSkip > 0) {
                 log.info(
                         "Remaining pages: {}. Skipping the next {} scheduled run(s).",
-                        result.pageCount(),
+                        remainingPages,
                         runsToSkip);
             } else {
-                log.info("Remaining pages below {}. Monitoring will run again in next {}, minutes", skipBucket, getNextInterval());
+                log.info(
+                        "Remaining pages below {}. Monitoring will run again in {}.",
+                        skipBucket,
+                        getNextInterval());
             }
 
-            result.pages().forEach(page ->
-                    log.info(" - {}", page));
-
-            if (result.pageCount() < threshold) {
-
-                if (!alreadyNotified) {
-
-                    log.warn(
-                            "Threshold reached. Sending notification.");
-
-                    emailService.send(result);
-
-                    alreadyNotified = true;
-
-                } else {
-
-                    log.info("Notification already sent.");
-
-                }
-
-            } else {
-
-                alreadyNotified = false;
-
-                log.info("Everything looks good.");
-
+            result.pages()
+                    .stream()
+                    .findFirst()
+                    .ifPresent(page -> log.info("Next page: - {}", page));
+            handleNotifications(result, fastCheck);
+            if (!result.pages().isEmpty()) {
+                log.info("Last page: {}", result.pages().getLast());
             }
 
         } catch (Exception ex) {
-
             log.error("Monitoring failed.", ex);
-
         }
 
         log.info("Monitor finished.");
         log.info("========================================");
+    }
 
+    private void handleNotifications(
+            MonitorResult result,
+            MonitorProperties.FastCheck fastCheck) {
+
+        int pageCount = result.pageCount();
+
+        //
+        // Threshold reached.
+        //
+        if (pageCount < threshold) {
+
+            if (!thresholdNotificationSent) {
+                log.warn("Threshold reached. Sending notification.");
+
+                emailService.sendThresholdAlert(result);
+                fastCheckReminderCount = 0;
+                thresholdNotificationSent = true;
+            } else {
+                log.info("Threshold notification already sent.");
+            }
+
+            return;
+        }
+
+        //
+        // Fast-check zone.
+        //
+        if (pageCount <= fastCheck.getMaxPages()
+                && pageCount > fastCheck.getMinPages()) {
+            thresholdNotificationSent = false;
+            if (fastCheckReminderCount < maxReminders) {
+
+                log.info(
+                        "Fast-check reminder {}/{}.",
+                        fastCheckReminderCount + 1,
+                        maxReminders);
+
+                emailService.sendWarning(result);
+                fastCheckReminderCount++;
+            } else {
+                log.info("Maximum fast-check reminders already sent.");
+            }
+
+            return;
+        }
+
+        //
+        // Normal monitoring.
+        //
+        thresholdNotificationSent = false;
+        fastCheckReminderCount = 0;
+
+        log.info("Everything looks good.");
     }
 
     public Duration getNextInterval() {
