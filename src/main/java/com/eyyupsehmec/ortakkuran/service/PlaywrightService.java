@@ -70,8 +70,7 @@ public class PlaywrightService {
         int end = body.indexOf("TAMAMLANANLAR");
 
         if (start == -1 || end == -1 || end <= start) {
-            throw new IllegalStateException(
-                    "Could not locate the SIRADAKİLER or TAMAMLANANLAR sections.");
+            return List.of(); // or whatever represents "no result"
         }
 
         String remainingSection = body.substring(start, end);
