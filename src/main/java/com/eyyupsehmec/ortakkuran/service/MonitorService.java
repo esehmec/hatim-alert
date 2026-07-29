@@ -22,7 +22,7 @@ public class MonitorService {
     private static final ZoneId CST = ZoneId.of("America/Chicago");
     private int skipBucket;;
     private int threshold;
-    int maxReminders = properties.getFastCheck().getMaxReminders();
+    int maxReminders;
 
     /**
      * Number of reminder emails sent while in the fast-check zone.
@@ -41,7 +41,7 @@ public class MonitorService {
 
     public void monitor() {
         LocalTime now = LocalTime.now(CST);
-
+        maxReminders = properties.getFastCheck().getMaxReminders();
         if (now.isBefore(LocalTime.of(6, 0)) ||
                 now.isAfter(LocalTime.of(23, 50))) {
             log.info("Skipping monitor. Outside monitoring window (06:00 - 23:50 CST).");
@@ -92,7 +92,7 @@ public class MonitorService {
                     .ifPresent(page -> log.info("Next page: - {}", page));
             handleNotifications(result, fastCheck);
             if (!result.pages().isEmpty()) {
-                log.info("Last page: {}", result.pages().getLast());
+                log.info("Last page: {}", result.pages().get(result.pages().size() - 1));
             }
 
         } catch (Exception ex) {
