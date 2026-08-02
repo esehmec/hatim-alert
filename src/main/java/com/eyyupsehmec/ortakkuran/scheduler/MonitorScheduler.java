@@ -20,8 +20,13 @@ public class MonitorScheduler {
 
     @PostConstruct
     public void initialize() {
-        monitorService.monitor();
-        scheduleMonitor(monitorService.getNextInterval());
+        try {
+            monitorService.monitor();
+        } catch (Exception e) {
+            log.error("Initial monitor execution failed.", e);
+        } finally {
+            scheduleMonitor(monitorService.getNextInterval());
+        }
     }
 
     private void scheduleMonitor(Duration interval) {
