@@ -20,9 +20,6 @@ public class MonitorService {
     private final MonitorProperties properties;
     private volatile int remainingPages;
     private static final ZoneId CST = ZoneId.of("America/Chicago");
-    private int skipBucket;;
-    private int threshold;
-    int maxReminders;
 
     /**
      * Number of reminder emails sent while in the fast-check zone.
@@ -34,26 +31,12 @@ public class MonitorService {
      */
     private volatile boolean thresholdNotificationSent = false;
 
-    /**
-     * Number of scheduled monitor executions to skip.
-     */
-    private volatile int runsToSkip = 0;
-
     public void monitor() {
         LocalTime now = LocalTime.now(CST);
-        maxReminders = properties.getFastCheck().getMaxReminders();
-        if (now.isBefore(LocalTime.of(6, 0)) ||
-                now.isAfter(LocalTime.of(23, 50))) {
-            log.info("Skipping monitor. Outside monitoring window (06:00 - 23:50 CST).");
-            return;
-        }
-
-        if (runsToSkip > 0) {
-            log.info(
-                    "Skipping scheduled monitor. {} scheduled run(s) remaining.",
-                    runsToSkip);
-
-            runsToSkip--;
+        int maxReminders = properties.getFastCheck().getMaxReminders();
+        if (now.isBefore(LocalTime.of(1, 0)) ||
+                now.isAfter(LocalTime.of(1, 1))) {
+            log.info("Skipping monitor. Outside monitoring window ");
             return;
         }
 
@@ -61,8 +44,7 @@ public class MonitorService {
         log.info("Starting monitor");
 
         try {
-            threshold = properties.getThreshold();
-            skipBucket = properties.getSkipBucket();
+            int threshold = properties.getThreshold();
 
             MonitorProperties.FastCheck fastCheck = properties.getFastCheck();
 
@@ -72,25 +54,13 @@ public class MonitorService {
 
             log.info("Remaining pages: {}", remainingPages);
 
-            runsToSkip = Math.max(0, (remainingPages - 1) / skipBucket);
-
-            if (runsToSkip > 0) {
-                log.info(
-                        "Remaining pages: {}. Skipping the next {} scheduled run(s).",
-                        remainingPages,
-                        runsToSkip);
-            } else {
-                log.info(
-                        "Remaining pages below {}. Monitoring will run again in {}.",
-                        skipBucket,
-                        getNextInterval());
-            }
+            log.info("Next monitor scheduled in {}.", getNextInterval());
 
             result.pages()
                     .stream()
                     .findFirst()
                     .ifPresent(page -> log.info("Next page: - {}", page));
-            handleNotifications(result, fastCheck);
+            handleNotifications(result, fastCheck, threshold, maxReminders);
             if (!result.pages().isEmpty()) {
                 log.info("Last page: {}", result.pages().get(result.pages().size() - 1));
             }
@@ -105,7 +75,9 @@ public class MonitorService {
 
     private void handleNotifications(
             MonitorResult result,
-            MonitorProperties.FastCheck fastCheck) {
+            MonitorProperties.FastCheck fastCheck,
+            int threshold,
+            int maxReminders) {
 
         int pageCount = result.pageCount();
 
