@@ -35,7 +35,7 @@ public class MonitorService {
         LocalTime now = LocalTime.now(CST);
         int maxReminders = properties.getFastCheck().getMaxReminders();
         if (now.isBefore(LocalTime.of(1, 0)) ||
-                now.isAfter(LocalTime.of(1, 1))) {
+                now.isAfter(LocalTime.of(23, 59))) {
             log.info("Skipping monitor. Outside monitoring window ");
             return;
         }
