@@ -1,11 +1,11 @@
 monitor:
   url: https://herkul.app/ortak-kuran
-  threshold: 10
-  start-time: "06:00"
+  threshold: 15
+  start-time: "01:00"
   end-time: "23:50"
   interval: 1h
   fast-check:
-    min-pages: 10
+    min-pages: 15
     max-pages: 100
     interval: 15m
     max-reminders: 3
