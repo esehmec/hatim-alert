@@ -30,6 +30,8 @@ public class MonitorScheduler {
         taskScheduler.schedule(() -> {
             try {
                 monitorService.monitor();
+            } catch (Exception e) {
+                log.error("Monitor execution failed.", e);
             } finally {
                 scheduleMonitor(monitorService.getNextInterval());
             }
